@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UserAlreadyExistsException } from './exceptions/user-already-exists.exception';
+import { UserByIdNotFoundException } from './exceptions/user-by-id-not-found.exception';
 
 @Injectable()
 export class UsersService {
@@ -22,18 +24,34 @@ export class UsersService {
     }
 
     async findOneByEmail(email: string) {
-        return await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: {
                 email
             }
         });
+
+        if (!user) {
+        }
+        return user;
     }
 
     async create(data: CreateUserDto) {
+        const user = await this.findOneByEmail(data.email);
+
+        if (user) {
+            throw new UserAlreadyExistsException(data.email);
+        }
+
         return await this.prisma.user.create({ data });
     }
 
     async update(id: number, data: Partial<CreateUserDto>) {
+        const user = await this.findOneById(id);
+
+        if (!user) {
+            throw new UserByIdNotFoundException(id);
+        }
+
         return await this.prisma.user.update({
             where: {
                 id
@@ -43,6 +61,12 @@ export class UsersService {
     }
 
     async delete(id: number) {
+        const user = await this.findOneById(id);
+
+        if (!user) {
+            throw new UserByIdNotFoundException(id);
+        }
+
         return await this.prisma.user.delete({
             where: {
                 id

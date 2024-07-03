@@ -12,6 +12,7 @@ const start = async () => {
         .setTitle("Shoply RESTful API")
         .setDescription("A RESTful API of online store named 'Shop.ly'")
         .setVersion("1.0.0")
+        .addBearerAuth()
         .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

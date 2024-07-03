@@ -1,12 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserDto } from './dto/user.dto';
-import { UserByIdNotFoundException } from './exceptions/user-by-id-not-found.exception';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('users')
 @ApiTags("Users")
+@ApiBearerAuth()
 export class UsersController {
     constructor(
         private usersService: UsersService
@@ -22,6 +23,7 @@ export class UsersController {
         description: "Returns all users",
         type: [UserDto]
     })
+    @UseGuards(AuthGuard)
     async findAll() {
         return await this.usersService.findAll();
     }

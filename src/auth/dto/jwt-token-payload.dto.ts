@@ -23,5 +23,5 @@ export class JwtTokenPayloadDto {
         example: "bdcc919b-14f4-44e8-bfb7-bc8011606ee2",
         description: "The uuid of device",
     })
-    readonly deviceId: string;
+    readonly userAgent: string;
 }

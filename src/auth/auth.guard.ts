@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-    constructor(private jwtService: JwtService) { }
+    constructor(
+        private jwtService: JwtService,
+        private redis: RedisService
+    ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
@@ -18,6 +22,12 @@ export class AuthGuard implements CanActivate {
             throw new UnauthorizedException();
         }
         try {
+            const isTokenDeprecated = await this.redis.get(token);
+
+            if (isTokenDeprecated) {
+                throw new UnauthorizedException();
+            }
+
             const payload = await this.jwtService.verifyAsync(
                 token,
                 {

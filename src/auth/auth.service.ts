@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UsersService } from '../users/users.service';
 import { compareSync, hashSync } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { JwtTokenPayloadDto } from './dto/jwt-token-payload.dto';
-import { randomUUID } from 'crypto';
 import { UserAlreadyExistsException } from 'src/users/exceptions/user-already-exists.exception';
 import { IncorrectLoginOrPassword } from 'src/auth/exceptions/incorrect-login-or-password.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -19,7 +18,7 @@ export class AuthService {
         private jwtService: JwtService,
         private prisma: PrismaService,
         private redis: RedisService
-    ) {}
+    ) { }
     async register(userData: CreateUserDto) {
         const candidate = await this.usersService.findOneByEmail(userData.email);
 
@@ -39,7 +38,7 @@ export class AuthService {
         }
     }
 
-    async login(userData: CreateUserDto) {
+    async login(userData: CreateUserDto, userAgent: string) {
         const user = await this.usersService.findOneByEmail(userData.email);
 
         if (!user) {
@@ -52,22 +51,36 @@ export class AuthService {
             throw new IncorrectLoginOrPassword();
         }
 
-        const deviceId = randomUUID();
+        const existedSession = await this.prisma.userSession.findUnique({
+            where: {
+                userId: user.id,
+                userAgent: userAgent
+            }
+        });
+
+        if (existedSession) {
+            await this.prisma.userSession.delete({
+                where: {
+                    id: existedSession.id
+                }
+            })
+        }
+
         const accessToken = await this.generateAccessToken({
             userId: user.id,
             email: user.email,
             tokenType: "access",
-            deviceId
+            userAgent
         });
         const refreshToken = await this.generateRefreshToken({
             userId: user.id,
             tokenType: "refresh",
-            deviceId
+            userAgent
         });
 
         await this.prisma.userSession.create({
             data: {
-                deviceId,
+                userAgent,
                 refreshToken,
                 userId: user.id,
             }
@@ -85,7 +98,7 @@ export class AuthService {
         }
     }
 
-    async getTokensByRefresh(refreshToken: string) {
+    async getTokensByRefresh(refreshToken: string, userAgent: string) {
         const userSession = await this.prisma.userSession.findUnique({
             where: {
                 refreshToken
@@ -99,23 +112,28 @@ export class AuthService {
         try {
             const verified = this.jwtService.verify<Omit<JwtTokenPayloadDto, "email">>(refreshToken);
 
-            if (verified.deviceId !== userSession.deviceId) {
+            if (verified.userAgent !== userSession.userAgent) {
                 throw new IncorrectRefreshToken();
             }
-            
+
+            await this.prisma.userSession.delete({
+                where: {
+                    id: userSession.id
+                }
+            });
+
             const user = await this.usersService.findOneById(verified.userId);
 
-            const deviceId = randomUUID();
             const newAccessToken = await this.generateAccessToken({
                 userId: user.id,
                 email: user.email,
                 tokenType: "access",
-                deviceId
+                userAgent
             });
             const newRefreshToken = await this.generateRefreshToken({
                 userId: user.id,
                 tokenType: "refresh",
-                deviceId
+                userAgent
             });
 
             await this.prisma.userSession.update({
@@ -123,7 +141,7 @@ export class AuthService {
                     id: userSession.id
                 },
                 data: {
-                    deviceId,
+                    userAgent,
                     refreshToken: newRefreshToken
                 }
             });
@@ -156,14 +174,24 @@ export class AuthService {
         });
     }
 
-    async logout(userId: number, deviceId: string) {
-       const existedSession = await this.prisma.userSession.findUnique({
-           where: {
+    async logout(userId: number, userAgent: string, accessToken: string) {
+        const existedSession = await this.prisma.userSession.findUnique({
+            where: {
                 userId,
-                deviceId
-           }
-       });
+                userAgent
+            }
+        });
 
-       await this.redis.set(existedSession.refreshToken, existedSession.userId, 86400);
+        if (!existedSession) {
+            throw new HttpException("User is not logged out", HttpStatus.UNAUTHORIZED);
+        }
+
+        await this.prisma.userSession.delete({
+            where: {
+                id: existedSession.id
+            }
+        });
+
+        await this.redis.set(accessToken, "deprecated", 3600);
     }
 }

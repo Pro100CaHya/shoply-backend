@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from "@nestjs-modules/ioredis";
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
     imports: [
@@ -15,7 +16,8 @@ import { RedisModule } from "@nestjs-modules/ioredis";
         }),
         UsersModule,
         AuthModule,
-        RedisModule
+        RedisModule,
+        CategoriesModule
     ],
     controllers: [],
     providers: []

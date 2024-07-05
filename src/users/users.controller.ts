@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserDto } from './dto/user.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { UserByIdNotFoundException } from './exceptions/user-by-id-not-found.exception';
 
 @Controller('users')
 @ApiTags("Users")
@@ -36,6 +37,11 @@ export class UsersController {
         status: 200,
         description: "Returns user by unique identifier",
         type: UserDto
+    })
+    @ApiResponse({
+        status: 404,
+        description: "User with specified ID not found",
+        type: UserByIdNotFoundException
     })
     @Get(":id")
     async findOneById(@Param("id") id: number) {

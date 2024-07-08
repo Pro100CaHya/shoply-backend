@@ -46,6 +46,7 @@ model Good {
   price      Float
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId Int      @map("category_id")
+  image      String
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

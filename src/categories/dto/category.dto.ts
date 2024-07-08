@@ -8,7 +8,7 @@ export class CategoryDto {
     readonly id: number;
 
     @ApiProperty({
-        example: "ivan.ivanov@gmail.com",
+        example: "Mobile Phones",
         description: "The email address of the category",
     })
     readonly name: string;

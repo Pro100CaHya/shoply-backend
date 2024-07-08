@@ -4,6 +4,10 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from "@nestjs-modules/ioredis";
 import { CategoriesModule } from './categories/categories.module';
+import { GoodsModule } from './goods/goods.module';
+import { ServeStaticModule } from "@nestjs/serve-static";
+
+import { join } from "path";
 
 @Module({
     imports: [
@@ -14,10 +18,14 @@ import { CategoriesModule } from './categories/categories.module';
             type: 'single',
             url: process.env.REDIS_URL
         }),
+        ServeStaticModule.forRoot({
+            rootPath: join(__dirname, '../uploads')
+        }),
         UsersModule,
         AuthModule,
         RedisModule,
-        CategoriesModule
+        CategoriesModule,
+        GoodsModule
     ],
     controllers: [],
     providers: []

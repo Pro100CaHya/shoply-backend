@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CategoryDto } from './dto/category.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ValidationPipe } from 'src/pipes/validation.pipe';
 
 @Controller('categories')
 @ApiTags("Categories")
@@ -49,6 +50,7 @@ export class CategoriesController {
         description: "Returns created category",
         type: CategoryDto
     })
+    @UsePipes(ValidationPipe)
     async create(@Body() data: CreateCategoryDto): Promise<CategoryDto> {
         return await this.categoriesService.create(data);
     }
